@@ -1,0 +1,167 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+name: Create release
+
+jobs:
+  build:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      # Windows, x86, 64bit
+      - name: Install toolchain for x86_64-pc-windows-gnu
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          override: true
+      - name: Build release for x86_64-pc-windows-gnu
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target x86_64-pc-windows-gnu --release
+      
+      # Linux, ARMv7
+      - name: Install toolchain for armv7-unknown-linux-gnueabihf
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          override: true
+      - name: Build release for armv7-unknown-linux-gnueabihf
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target armv7-unknown-linux-gnueabihf --release
+      
+      # Linux, ARM
+      - name: Install toolchain for arm-unknown-linux-gnueabihf
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: arm-unknown-linux-gnueabihf
+          override: true
+      - name: Build release for arm-unknown-linux-gnueabihf
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target arm-unknown-linux-gnueabihf --release
+      
+      # Linux, x86, 64bit
+      - name: Install toolchain for x86_64-unknown-linux-gnu
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+          override: true
+      - name: Build release for x86_64-unknown-linux-gnu
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target x86_64-unknown-linux-gnu --release
+      
+      # Linux, x86, 32bit
+      - name: Install toolchain for i686-unknown-linux-gnu
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: i686-unknown-linux-gnu
+          override: true
+      - name: Build release for i686-unknown-linux-gnu
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target i686-unknown-linux-gnu --release
+
+      - name: Collect artifacts
+        run: |
+          mkdir ./release
+          cp target/x86_64-pc-windows-gnu/release/cvardump.exe ./release/cvardump_x86_64-pc-windows-gnu.exe
+          cp target/armv7-unknown-linux-gnueabihf/release/cvardump ./release/cvardump_armv7-unknown-linux-gnueabihf
+          cp target/arm-unknown-linux-gnueabihf/release/cvardump ./release/cvardump_arm-unknown-linux-gnueabihf
+          cp target/x86_64-unknown-linux-gnu/release/cvardump ./release/cvardump_x86_64-unknown-linux-gnu
+          cp target/i686-unknown-linux-gnu/release/cvardump ./release/cvardump_i686-unknown-linux-gnu
+          cd release
+          sha256sum cvardump_* > SHA256SUM
+          cat SHA256SUM
+
+      - name: Create release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+      - name: Upload executable for x86_64-pc-windows-gnu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/cvardump_x86_64-pc-windows-gnu.exe
+          asset_name: cvardump_x86_64-pc-windows-gnu.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+      - name: Upload executable for armv7-unknown-linux-gnueabihf
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/cvardump_armv7-unknown-linux-gnueabihf
+          asset_name: cvardump_armv7-unknown-linux-gnueabihf
+          asset_content_type: application/octet-stream
+      - name: Upload executable for arm-unknown-linux-gnueabihf
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/cvardump_arm-unknown-linux-gnueabihf
+          asset_name: cvardump_arm-unknown-linux-gnueabihf
+          asset_content_type: application/octet-stream
+      - name: Upload executable for x86_64-unknown-linux-gnu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/cvardump_x86_64-unknown-linux-gnu
+          asset_name: cvardump_x86_64-unknown-linux-gnu
+          asset_content_type: application/octet-stream
+      - name: Upload executable for i686-unknown-linux-gnu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/cvardump_i686-unknown-linux-gnu
+          asset_name: cvardump_i686-unknown-linux-gnu
+          asset_content_type: application/octet-stream
+
+      - name: Upload checksums of executables
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/SHA256SUM
+          asset_name: SHA256SUM
+          asset_content_type: text/plain
